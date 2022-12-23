@@ -1,4 +1,11 @@
 # 我的尝试
+模型权重链接：
+https://pan.baidu.com/s/1Hjn0qmLnN_NH41KVf46SKg%EF%BC%8C%E6%8F%90%E5%8F%96%E7%A0%81%EF%BC%9AGt63#list/path=%2Fnodes-lm-conceptnet
+nodes-lm-conceptnet/lm_pytorch_model.bin and conceptnet_bert_embeddings.pt
+
+data_bert finetune的模型是（BERT-Large, Uncased）
+https://huggingface.co/bert-large-uncased/tree/main
+
 添加致密化后，用余弦相似度计算两个词向量的相似度，相似度大于一定阈值的会添加一条边，关系类型为sim
 但是可以看到下面打印的一条结果，他把图中已有的边也更改了，这样是不是不太好
 而且我哪怕用了更小的数据集（就是把数据只留10000一万条测试集，测试和验证都是800）并且把致密化的阈值提高到
