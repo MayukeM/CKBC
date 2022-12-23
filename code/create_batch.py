@@ -6,20 +6,22 @@ import time
 import queue
 import random
 
+from tqdm import tqdm
 
-class Corpus:
+
+class Corpus:  # 语料库, 用于存储数据, 以及生成batch
     def __init__(self, args, train_data, validation_data, test_data, entity2id,
                  relation2id, batch_size, valid_to_invalid_samples_ratio, unique_entities_train, get_2hop=False):
-        self.train_triples = train_data[0]
+        self.train_triples = train_data[0]  # 训练数据
 
-        # Converting to sparse tensor
+        # Converting to sparse tensor, 把训练数据转换为稀疏张量, 用于后续的训练
         adj_indices = torch.LongTensor([train_data[1][0], train_data[1][1]])  # rows and columns；尾实体和头实体ID
         adj_values = torch.LongTensor(train_data[1][2]) # 关系ID
         self.train_adj_matrix = (adj_indices, adj_values)
 
         # adjacency matrix is needed for train_data only, as GAT is trained for
-        # training data
-        self.validation_triples = validation_data[0]
+        # training data，邻接矩阵仅用于训练数据，因为GAT仅用于训练数据
+        self.validation_triples = validation_data[0]  # 三元组
         self.test_triples = test_data[0]
 
         #self.headTailSelector = headTailSelector  # for selecting random entities
@@ -31,15 +33,15 @@ class Corpus:
         # ratio of valid to invalid samples per batch for training ConvKB Model
         self.invalid_valid_ratio = int(valid_to_invalid_samples_ratio)
 
-        if(get_2hop):
+        if(get_2hop):  # 意思是要获取2跳邻居
             self.graph = self.get_graph()
             self.node_neighbors_2hop = self.get_further_neighbors()
 
-        self.unique_entities_train = [self.entity2id[i]
-                                      for i in unique_entities_train]
+        self.unique_entities_train = [self.entity2id[i] for i in unique_entities_train]
+
 
         self.train_indices = np.array(
-            list(self.train_triples)).astype(np.int32)
+            list(self.train_triples)).astype(np.int32)  # 训练数据的索引，即三元组，转换为numpy数组，数据类型为int32，astype()函数用于转换数据类型
         # These are valid triples, hence all have value 1
         self.train_values = np.array(
             [[1]] * len(self.train_triples)).astype(np.float32)
@@ -58,11 +60,11 @@ class Corpus:
         print("Total triples count {}, training triples {}, validation_triples {}, test_triples {}".format(len(self.valid_triples_dict), len(self.train_indices),
                                                                                                            len(self.validation_indices), len(self.test_indices)))
 
-        # For training purpose
-        self.batch_indices = np.empty(
-            (self.batch_size * (self.invalid_valid_ratio + 1), 3)).astype(np.int32)
+        # For training purpose，用于训练目的
+        self.batch_indices = np.empty(  # 生成空数组, 用于存储batch的索引, empty()函数用于生成空数组,数组的初始值为未初始化的，并且将包含创建数组时内存中的任意值。数组可能包含0和-2147483648
+            (self.batch_size * (self.invalid_valid_ratio + 1), 3)).astype(np.int32)  # 128*(4+1), 3，即形状为(640, 3)
         self.batch_values = np.empty(
-            (self.batch_size * (self.invalid_valid_ratio + 1), 1)).astype(np.float32)
+            (self.batch_size * (self.invalid_valid_ratio + 1), 1)).astype(np.float32)  # 128*(4+1), 1，即形状为(640, 1)
 
     def get_iteration_batch(self, iter_num):
         if (iter_num + 1) * self.batch_size <= len(self.train_indices):
@@ -302,7 +304,9 @@ class Corpus:
         count = 0
         start_time = time.time()
         print("length of graph keys is ", len(self.graph.keys())) # FB：13781
-        for source in self.graph.keys():
+        # 用进度条显示进度
+        for source in tqdm(self.graph.keys()):
+        # for source in self.graph.keys():
             # st_time = time.time()
             temp_neighbors = self.bfs(self.graph, source, nbd_size)
             for distance in temp_neighbors.keys():
@@ -316,7 +320,7 @@ class Corpus:
                     neighbors[source] = {}
                     neighbors[source][distance] = temp_neighbors[distance]
             count += 1
-            #print(count)
+            # print(count)
 
         print("time taken ", time.time() - start_time)
 

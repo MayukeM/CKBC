@@ -6,18 +6,18 @@ from collections import defaultdict
 class Graph:
 
     def __init__(self, directed=True):
-        self.relations = defaultdict()
-        self.nodes = defaultdict()
-        self.node2id = {}
-        self.relation2id = {}
+        self.relations = defaultdict()  #  defaultdict()是一个字典，当你访问一个不存在的键时，它会返回一个默认值，而不是抛出异常
+        self.nodes = defaultdict()  # defaultdict()是一个字典，当你访问一个不存在的键时，它会返回一个默认值
+        self.node2id = {}  # 一个空字典，用来存储节点的名字和id
+        self.relation2id = {}  # 一个空字典，用来存储关系的名字和id
         self.edges = {}
         self.edgeCount = 0
-        self.directed = directed
+        self.directed = directed  # 是否有环
         #self.add_node("UNK-NODE")
         #self.add_relation("UNK-REL")
 
     def add_edge(self, node1, node2, rel, label, weight, uri=None):
-        """
+        """  # uri是什么
 
         :param node1: source node
         :param node2: target node
@@ -36,9 +36,9 @@ class Graph:
 
         # node1.neighbors.add(node2)
         node2.neighbors.add(node1)
-        self.edgeCount += 1
+        self.edgeCount += 1  # 边的数量
 
-        if (self.edgeCount + 1) % 10000 == 0:
+        if (self.edgeCount) % 100000 == 0:
             print("Number of edges: %d" % self.edgeCount, end="\r")
           
         return new_edge      
@@ -49,9 +49,9 @@ class Graph:
         :param name:
         :return:
         """
-        new_node = Node(name, len(self.nodes))
-        self.nodes[len(self.nodes)] = new_node
-        self.node2id[new_node.name] = len(self.nodes) - 1
+        new_node = Node(name, len(self.nodes))  # 一个节点的名字和id, Node#0的意思是第一个节点
+        self.nodes[len(self.nodes)] = new_node  #
+        self.node2id[new_node.name] = len(self.nodes) - 1  #
         self.edges[new_node] = {}
         return self.node2id[new_node.name]
 
@@ -70,7 +70,7 @@ class Graph:
         :param name:
         :return:
         """
-        if name in self.node2id:
+        if name in self.node2id:  # 如果name在node2id中,返回node2id[name]
             return self.node2id[name]
         else:
             return -1
@@ -120,7 +120,7 @@ class Graph:
 
         return relevant_edges
 
-    def iter_nodes(self):
+    def iter_nodes(self):  # 迭代器
         return list(self.nodes.values())
 
     def iter_relations(self):
@@ -130,7 +130,7 @@ class Graph:
         for node in self.edges:
             for edge_list in self.edges[node].values():
                 for edge in edge_list:
-                    yield edge
+                    yield edge  # yield 语句用于定义生成器，生成器是一个返回迭代器的函数，只能用于迭代操作，生成器函数与普通函数不同，生成器函数只能用于迭代操作
 
     def __str__(self):
         for node in self.nodes:
@@ -175,10 +175,10 @@ class Relation:
 class Edge:
 
     def __init__(self, node1, node2, relation, label, weight, uri):
-        self.src = node1
-        self.tgt = node2
-        self.relation = relation
-        self.label = label
+        self.src = node1  # source node，源节点
+        self.tgt = node2  # target node，目标节点
+        self.relation = relation  # relation
+        self.label = label  # relation
         self.weight = weight
         self.uri = uri
 

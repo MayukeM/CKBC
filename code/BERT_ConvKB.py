@@ -39,7 +39,7 @@ def parse_args():
     args.add_argument("-d", "--dataset", type=str, default="conceptnet",
                       help="dataset to use")
     args.add_argument("-data", "--data",
-                      default="./data/ConceptNet/", help="data directory")
+                      default="../data/ConceptNet/small_data", help="data directory")
     args.add_argument("-e_g", "--epochs_gat", type=int,
                       default=3000, help="Number of epochs")
     args.add_argument("-e_c", "--epochs_conv", type=int,
@@ -153,7 +153,7 @@ def load_data(args):
     train_data, validation_data, test_data, entity2id, relation2id, train_network, unique_entities_train, bert_model, all_tuples = build_data(
         "conceptnet",
         ConceptNetTSVReader,
-        "data/ConceptNet/",
+        "../data/ConceptNet/small_data",
         False)
     all_e1_to_multi_e2, all_e2_to_multi_e1 = reader_utils.create_entity_dicts(all_tuples,
                                                                               len(train_network.graph.relations), True)

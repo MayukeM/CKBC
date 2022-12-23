@@ -131,27 +131,27 @@ class SpecialSpmmFinal(nn.Module):
 
 class SpGraphAttentionLayer(nn.Module):
     """
-    Sparse version GAT layer, similar to https://arxiv.org/abs/1710.10903
+    Sparse version GAT layer, similar to https://arxiv.org/abs/1710.10903，稀疏版本的GAT，类似于https://arxiv.org/abs/1710.10903
     """
 
     def __init__(self, num_nodes, in_features, out_features, nrela_dim, dropout, alpha, concat=True):
-        super(SpGraphAttentionLayer, self).__init__()
-        self.in_features = in_features
-        self.out_features = out_features
-        self.num_nodes = num_nodes
-        self.alpha = alpha
+        super(SpGraphAttentionLayer, self).__init__()  # 调用父类的构造函数，即nn.Module的构造函数
+        self.in_features = in_features  # 输入特征维度
+        self.out_features = out_features  # 输出特征维度
+        self.num_nodes = num_nodes  # 节点数
+        self.alpha = alpha  # leakyrelu的参数，用于计算leakyrelu的梯度
         self.concat = concat
         self.nrela_dim = nrela_dim
 
-        self.a = nn.Parameter(torch.zeros(
+        self.a = nn.Parameter(torch.zeros(  # nn.Parameter()是一个特殊的Tensor，当它被赋值为一个Module的属性时，它会被自动添加到模块的参数列表里
             size=(out_features, 2 * in_features + nrela_dim)))
         nn.init.xavier_normal_(self.a.data, gain=1.414)
-        self.a_2 = nn.Parameter(torch.zeros(size=(1, out_features)))
-        nn.init.xavier_normal_(self.a_2.data, gain=1.414)
+        self.a_2 = nn.Parameter(torch.zeros(size=(1, out_features)))  # nn.Parameter()是一个特殊的Tensor，当它被赋值为一个Module的属性时，它会被自动添加到模块的参数列表里
+        nn.init.xavier_normal_(self.a_2.data, gain=1.414)  # nn.init.xavier_normal_()是用来初始化权重的，gain是一个放大系数，用来控制输出的方差，使得梯度不会消失或者爆炸
 
-        self.dropout = nn.Dropout(dropout)
-        self.leakyrelu = nn.LeakyReLU(self.alpha)
-        self.special_spmm_final = SpecialSpmmFinal()
+        self.dropout = nn.Dropout(dropout)  # nn.Dropout()是用来防止过拟合的
+        self.leakyrelu = nn.LeakyReLU(self.alpha)  # nn.LeakyReLU()是用来增加非线性的
+        self.special_spmm_final = SpecialSpmmFinal()  # 自定义的稀疏矩阵乘法
 
     def forward(self, input, edge, edge_embed, edge_list_nhop, edge_embed_nhop):
         N = input.size()[0] #实体嵌入

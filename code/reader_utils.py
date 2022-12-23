@@ -106,14 +106,14 @@ def create_entity_dicts(all_tuples, num_rels, sim_relations=False):
     for tup in all_tuples:
         e1, rel, e2 = tup
 
-        # No need to use sim edges for decoding
+        # No need to use sim edges for decoding, 不需要用sim边进行解码
         if rel == num_rels-1 and sim_relations:
             continue
 
-        rel_offset = num_rels
+        rel_offset = num_rels  # 29
 
         if sim_relations:
-            rel_offset -= 1
+            rel_offset -= 1  # 关系的偏移量
 
         if (e1, rel) in e1_to_multi_e2:
             e1_to_multi_e2[(e1, rel)].append(e2)

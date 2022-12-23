@@ -35,7 +35,7 @@ def parse_args():
     args.add_argument("-d", "--dataset", type=str, default="conceptnet",
                         help="dataset to use")
     args.add_argument("-data", "--data",
-                      default="./data/ConceptNet/", help="data directory")
+                      default="../data/ConceptNet/small_data", help="data directory")
     args.add_argument("-e_g", "--epochs_gat", type=int,
                       default=3000, help="Number of epochs")
     args.add_argument("-e_c", "--epochs_conv", type=int,
@@ -49,15 +49,15 @@ def parse_args():
     args.add_argument("-emb_size", "--embedding_size", type=int,
                       default=200, help="Size of embeddings (if pretrained not used)")
     args.add_argument("-l", "--lr", type=float, default=1e-3)
-    args.add_argument("-g2hop", "--get_2hop", type=bool, default=True)
+    args.add_argument("-g2hop", "--get_2hop", type=bool, default=False)
     args.add_argument("-u2hop", "--use_2hop", type=bool, default=True)
     args.add_argument("-p2hop", "--partial_2hop", type=bool, default=True)
     args.add_argument("-outfolder", "--output_folder",
-                      default="./checkpoints/cn/model_sim/", help="Folder name to save the models.")
+                      default="../checkpoints/cn/model_sim/", help="Folder name to save the models.")
 
     # arguments for GAT
     args.add_argument("-b_gat", "--batch_size_gat", type=int,
-                      default=222618, help="Batch size for GAT")
+                      default=128, help="Batch size for GAT")  # GAT的batch size,一般是训练集的大小，这里是222618
     args.add_argument("-neg_s_gat", "--valid_invalid_ratio_gat", type=int,
                       default=4, help="Ratio of valid to invalid triples for GAT training")
     args.add_argument("-drop_GAT", "--drop_GAT", type=float,
@@ -88,11 +88,12 @@ def parse_args():
 
 args = parse_args()
 print(args)
+
 # %%
 
 def build_data(dataset, reader_cls, data_dir, sim_relations):
     # 构建关于训练集验证集测试集的知识图
-    train_network = reader_cls(dataset)
+    train_network = reader_cls(dataset)  # 读取数据集，cls
     dev_network = reader_cls(dataset)
     test_network = reader_cls(dataset)
 
@@ -101,7 +102,7 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
     train_network.print_summary()
     node_list = train_network.graph.iter_nodes()
     node_degrees = [node.get_degree() for node in node_list]
-    degree_counter = Counter(node_degrees)
+    degree_counter = Counter(node_degrees)  # 统计每个节点的度,返回一个字典,键是度，值是度的个数
     avg_degree = sum([k * v for k, v in degree_counter.items()]) / sum([v for k, v in degree_counter.items()])
     print("Average Degree: ", avg_degree)
 
@@ -113,18 +114,18 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
     entity2id = train_network.graph.node2id
     # 所有的关系ID
     relation2id = train_network.graph.relation2id
-    unique_entities_train = train_network.unique_entities
+    unique_entities_train = train_network.unique_entities  # 训练集中的所有节点,是一个集合,不重复
 
-    bert_model = BertLayer(dataset)
+    bert_model = BertLayer(dataset)  # 读取bert模型
 
     # Add sim nodes
-    if sim_relations:
+    if sim_relations:  # 这一步是致密化
         print("Adding sim edges..")
         train_network.add_sim_edges_bert(bert_model)
 
     train_network.print_summary()
     # 输出图谱
-    train_triples = reader_utils.get_triple(entity2id, train_network, train_network)
+    train_triples = reader_utils.get_triple(entity2id, train_network, train_network)  # 训练集中的所有三元组
     test_triples = reader_utils.get_triple(entity2id, test_network, train_network)
     valid_triples = reader_utils.get_triple(entity2id, dev_network, train_network)
 
@@ -145,22 +146,20 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
 def load_data(args):
     train_data, validation_data, test_data, entity2id, relation2id, train_network, unique_entities_train, bert_model, all_tuples = build_data("conceptnet",
                                                                                             ConceptNetTSVReader,
-                                                                                            "data/ConceptNet/",
-                                                                                            True)
+                                                                                            "../data/ConceptNet/small_data",
+                                                                                            True)  # 最后一个参数是是否致密化
 
     all_e1_to_multi_e2, all_e2_to_multi_e1 = reader_utils.create_entity_dicts(all_tuples, len(train_network.graph.relations), True)
 
     train_data_no_sim, validation_data_no_sim, test_data_no_sim, _, relation2id_no_sim, train_network_no_sim, _, _, _ = build_data(
         "conceptnet",
         ConceptNetTSVReader,
-        "data/ConceptNet/",
+        "../data/ConceptNet/small_data",
         False)
     corpus_no_sim = Corpus(args, train_data_no_sim, validation_data_no_sim, test_data_no_sim, entity2id, relation2id_no_sim, args.batch_size_gat, args.valid_invalid_ratio_gat, unique_entities_train, args.get_2hop)
 
-    entity_embeddings = np.random.randn(
-            len(entity2id), args.embedding_size)
-    relation_embeddings = np.random.randn(
-            len(relation2id), args.embedding_size)
+    entity_embeddings = np.random.randn(len(entity2id), args.embedding_size)
+    relation_embeddings = np.random.randn(len(relation2id), args.embedding_size)
     print("Initialised relations and entities randomly")
 
     corpus = Corpus(args, train_data, validation_data, test_data, entity2id, relation2id, args.batch_size_gat, args.valid_invalid_ratio_gat, unique_entities_train, args.get_2hop)
@@ -187,11 +186,11 @@ if(args.use_2hop):
         node_neighbors_2hop = pickle.load(handle) # 2跳邻居的信息
 
 
-print("Initial entity dimensions {} , relation dimensions {}".format(
+print("Initial entity dimensions {} , relation dimensions {}".format(  # 实体和关系的维度
     entity_embeddings.size(), relation_embeddings.size())) # FB：【14541，100】，【237，100】
 # %%
 
-CUDA = torch.cuda.is_available()
+CUDA = torch.cuda.is_available()  # 是否使用GPU
 
 
 def batch_gat_loss(gat_loss_func, train_indices, entity_embed, relation_embed):
@@ -228,15 +227,20 @@ def train_gat(args):
     # Creating the gat model here.
     ####################################
 
-    print("Defining model")
+    print("Defining model")  # define model是定义模型
 
     print(
         "\nModel type -> GAT layer with {} heads used , Initital Embeddings training".format(args.nheads_GAT[0]))
     model_gat = SpKBGATModified(entity_embeddings, relation_embeddings, args.entity_out_dim, args.entity_out_dim,
-                                args.drop_GAT, args.alpha, args.nheads_GAT)
+                                args.drop_GAT, args.alpha, args.nheads_GAT)  # 实体和关系的维度，实体和关系的输出维度，dropout，alpha，heads
 
     if CUDA:
-        model_gat.cuda()
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            model_gat = nn.DataParallel(model_gat, device_ids=[0, 1, 2, 3])  # multi-GPU, multi-node, device_ids=[0,1,2,3]
+        else:
+            model_gat.cuda()
+        # model_gat.cuda()
 
     optimizer = torch.optim.Adam(
         model_gat.parameters(), lr=args.lr, weight_decay=args.weight_decay_gat)
@@ -338,7 +342,8 @@ def train_conv(args):
 
     if CUDA:
         if torch.cuda.device_count() > 1:
-            model_conv = nn.DataParallel(model_conv, device_ids=[0, 1])
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            model_conv = nn.DataParallel(model_conv, device_ids=[0, 1, 2, 3])  # multi-GPU, multi-node, device_ids=[0,1,2,3]
         else:
             model_conv.cuda()
         model_gat.cuda()

@@ -167,12 +167,12 @@ def get_adj_and_degrees(num_nodes, num_rels, triplets):
 
 
 def get_adj(triplets):
-    """ Get adjacency list of the graph
+    """ Get adjacency list of the graph  得到邻接矩阵
     """
 
-    col = []
-    row = []
-    rel = []
+    row = []  # 三元组的第一个元素
+    col = []  # 三元组的第二个元素
+    rel = []  # 三元组的第三个元素
     for i, triplet in enumerate(triplets):
         row.append(triplet[2])
         col.append(triplet[0])

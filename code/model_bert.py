@@ -9,26 +9,26 @@ from bert_feature_extractor import BertLayer
 
 CUDA = torch.cuda.is_available()  # checking cuda availability
 
-class SpGAT(nn.Module):
+class SpGAT(nn.Module):  # SpGAT class, 稀疏图注意力网络，继承自nn.Module
     def __init__(self, num_nodes, nfeat, nhid, relation_dim, dropout, alpha, nheads):
         """
-            Sparse version of GAT
-            nfeat -> Entity Input Embedding dimensions
-            nhid  -> Entity Output Embedding dimensions
-            relation_dim -> Relation Embedding dimensions
-            num_nodes -> number of nodes in the Graph
-            nheads -> Used for Multihead attention
+            Sparse version of GAT，GAT的稀疏版本
+            nfeat -> Entity Input Embedding dimensions，实体输入嵌入维度
+            nhid  -> Entity Output Embedding dimensions，实体输出嵌入维度
+            relation_dim -> Relation Embedding dimensions，关系嵌入维度
+            num_nodes -> number of nodes in the Graph，图中节点的数量
+            nheads -> Used for Multihead attention，用于多头注意力
 
         """
-        super(SpGAT, self).__init__()
-        self.dropout = dropout
-        self.dropout_layer = nn.Dropout(self.dropout)
-        self.attentions = [SpGraphAttentionLayer(num_nodes, nfeat,
-                                                 nhid,
-                                                 relation_dim,
-                                                 dropout=dropout,
-                                                 alpha=alpha,
-                                                 concat=True)
+        super(SpGAT, self).__init__()  # 调用父类的构造函数
+        self.dropout = dropout  # dropout，丢弃率，防止过拟合，一般在0.5-0.8之间
+        self.dropout_layer = nn.Dropout(self.dropout)  # dropout层，防止过拟合
+        self.attentions = [SpGraphAttentionLayer(num_nodes, nfeat,  # num_nodes:节点数，nfeat:输入维度
+                                                 nhid,  # nhid:输出维度
+                                                 relation_dim,  # relation_dim:关系维度
+                                                 dropout=dropout,  # dropout:丢弃率
+                                                 alpha=alpha,  # alpha:缩放因子
+                                                 concat=True)  # concat:是否拼接
                            for _ in range(nheads)]
 
         for i, attention in enumerate(self.attentions):
@@ -71,41 +71,42 @@ class SpKBGATModified(nn.Module):
     def __init__(self, initial_entity_emb, initial_relation_emb, entity_out_dim, relation_out_dim,
                  drop_GAT, alpha, nheads_GAT):
         '''Sparse version of KBGAT
-        entity_in_dim -> Entity Input Embedding dimensions
-        entity_out_dim  -> Entity Output Embedding dimensions, passed as a list
-        num_relation -> number of unique relations
-        relation_dim -> Relation Embedding dimensions
-        num_nodes -> number of nodes in the Graph
-        nheads_GAT -> Used for Multihead attention, passed as a list '''
+        entity_in_dim -> Entity Input Embedding dimensions，实体的输入维度
+        entity_out_dim  -> Entity Output Embedding dimensions, passed as a list，实体的输出维度
+        num_relation -> number of unique relations，关系的数量
+        relation_dim -> Relation Embedding dimensions，关系的维度
+        num_nodes -> number of nodes in the Graph，图中的节点数量
+        nheads_GAT -> Used for Multihead attention, passed as a list，用于多头注意力的头数
+        '''
 
-        super().__init__()
+        super().__init__()  # 调用父类的构造函数
 
-        self.num_nodes = initial_entity_emb.shape[0]
-        self.entity_in_dim = initial_entity_emb.shape[1]
-        self.entity_out_dim_1 = entity_out_dim[0]
-        self.nheads_GAT_1 = nheads_GAT[0]
-        self.entity_out_dim_2 = entity_out_dim[1]
-        self.nheads_GAT_2 = nheads_GAT[1]
+        self.num_nodes = initial_entity_emb.shape[0]  # number of nodes in the Graph，图中的节点数量
+        self.entity_in_dim = initial_entity_emb.shape[1]  # Entity Input Embedding dimensions，实体的输入维度
+        self.entity_out_dim_1 = entity_out_dim[0]  # Entity Output Embedding dimensions，实体的输出维度
+        self.nheads_GAT_1 = nheads_GAT[0]  # Used for Multihead attention, passed as a list，用于多头注意力的头数
+        self.entity_out_dim_2 = entity_out_dim[1]  # Entity Output Embedding dimensions，实体的输出维度
+        self.nheads_GAT_2 = nheads_GAT[1]  # Used for Multihead attention, passed as a list，用于多头注意力的头数
 
-        # Properties of Relations
-        self.num_relation = initial_relation_emb.shape[0]
-        self.relation_dim = initial_relation_emb.shape[1]
-        self.relation_out_dim_1 = relation_out_dim[0]
+        # Properties of Relations  关系的属性
+        self.num_relation = initial_relation_emb.shape[0]  # number of unique relations，关系的数量
+        self.relation_dim = initial_relation_emb.shape[1]  # Relation Embedding dimensions，关系的维度
+        self.relation_out_dim_1 = relation_out_dim[0]  # Relation Output Embedding dimensions，关系的输出维度
 
-        self.drop_GAT = drop_GAT
-        self.alpha = alpha      # For leaky relu
+        self.drop_GAT = drop_GAT  # dropout rate for GAT layers，GAT层的dropout率
+        self.alpha = alpha      # For leaky relu，用于leaky relu，leaky relu是一种激活函数，用于解决relu激活函数的一些问题
 
-        self.final_entity_embeddings = nn.Parameter(
-            torch.randn(self.num_nodes, self.entity_out_dim_1 * self.nheads_GAT_1))
+        self.final_entity_embeddings = nn.Parameter(  # Final Entity Embeddings，最终的实体嵌入
+            torch.randn(self.num_nodes, self.entity_out_dim_1 * self.nheads_GAT_1))  # 用于存储最终的实体嵌入
 
-        self.final_relation_embeddings = nn.Parameter(
-            torch.randn(self.num_relation, self.entity_out_dim_1 * self.nheads_GAT_1))
+        self.final_relation_embeddings = nn.Parameter(  # Final Relation Embeddings，最终的关系嵌入，nn.Parameter()是一个tensor，但是会被自动添加到模型的参数列表中
+            torch.randn(self.num_relation, self.entity_out_dim_1 * self.nheads_GAT_1))  # 用于存储最终的关系嵌入
 
-        self.entity_embeddings = nn.Parameter(initial_entity_emb)
-        self.relation_embeddings = nn.Parameter(initial_relation_emb)
+        self.entity_embeddings = nn.Parameter(initial_entity_emb)  # Entity Embeddings，实体嵌入
+        self.relation_embeddings = nn.Parameter(initial_relation_emb)  # Relation Embeddings，关系嵌入
 
-        self.sparse_gat_1 = SpGAT(self.num_nodes, self.entity_in_dim, self.entity_out_dim_1, self.relation_dim,
-                                  self.drop_GAT, self.alpha, self.nheads_GAT_1)
+        self.sparse_gat_1 = SpGAT(self.num_nodes, self.entity_in_dim, self.entity_out_dim_1, self.relation_dim,  # GAT Layer 1，GAT层1
+                                  self.drop_GAT, self.alpha, self.nheads_GAT_1)  # GAT Layer 1，GAT层1
 
         self.W_entities = nn.Parameter(torch.zeros(
             size=(self.entity_in_dim, self.entity_out_dim_1 * self.nheads_GAT_1)))

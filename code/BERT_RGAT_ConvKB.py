@@ -1,5 +1,6 @@
 import torch
 # from models import SpKBGATModified, SpKBGATConvOnly
+# import '/tmp/pycharm_project_14/model_bert'
 from model_bert import SpKBGATModified, SpKBGATConvOnly
 from torch.autograd import Variable
 import torch.nn as nn
@@ -15,8 +16,8 @@ from reader import ConceptNetTSVReader
 import reader_utils
 import os
 
-os.environ['CUDA_LAUNCH_BLOCKING'] = "0"
-import time
+os.environ['CUDA_LAUNCH_BLOCKING'] = "0"  # 设置cuda
+import time  #
 import sys
 import logging
 import pickle
@@ -33,60 +34,62 @@ def save_model(model, name, epoch, folder_name):
 
 
 def parse_args():
-    args = argparse.ArgumentParser()
+    args = argparse.ArgumentParser()  # argparse是python自带的一个命令行参数解析模块,用于解析命令行参数
     # network arguments
-    args.add_argument("-d", "--dataset", type=str, default="conceptnet",
-                      help="dataset to use")
+    args.add_argument("-d", "--dataset", type=str, default="conceptnet",  # 数据集，这里是conceptnet
+                      help="dataset to use")  # help是帮助信息
     args.add_argument("-data", "--data",
-                      default="./data/ConceptNet/", help="data directory")
+                      default="../data/ConceptNet/", help="data directory")  # 数据集的路径，这里是../data/ConceptNet/
     args.add_argument("-e_g", "--epochs_gat", type=int,
-                      default=3000, help="Number of epochs")
+                      default=3000, help="Number of epochs")  # gat训练的轮数，这里是3000
     args.add_argument("-e_c", "--epochs_conv", type=int,
-                      default=200, help="Number of epochs")
+                      default=200, help="Number of epochs")  # conv训练的轮数，这里是200
     args.add_argument("-w_gat", "--weight_decay_gat", type=float,
-                      default=0.00001, help="L2 reglarization for gat")
+                      default=0.00001, help="L2 reglarization for gat")  # gat的L2正则化系数，这里是0.00001
     args.add_argument("-w_conv", "--weight_decay_conv", type=float,
                       default=0.000, help="L2 reglarization for conv")  # 0.000001
     args.add_argument("-pre_emb", "--pretrained_emb", type=bool,
                       default=False, help="Use pretrained embeddings")
     args.add_argument("-emb_size", "--embedding_size", type=int,
                       default=200, help="Size of embeddings (if pretrained not used)")
-    args.add_argument("-l", "--lr", type=float, default=1e-3)
-    args.add_argument("-g2hop", "--get_2hop", type=bool, default=True)
-    args.add_argument("-u2hop", "--use_2hop", type=bool, default=True)
-    args.add_argument("-p2hop", "--partial_2hop", type=bool, default=True)
+    args.add_argument("-l", "--lr", type=float, default=1e-3)  # 学习率，这里是1e-3
+    args.add_argument("-g2hop", "--get_2hop", type=bool, default=True)  # 是否使用2hop,这里是True,即使用,g2hop是get_2hop的缩写
+    args.add_argument("-u2hop", "--use_2hop", type=bool, default=True)  # 是否使用2hop,这里是True,即使用,u2hop是use_2hop的缩写
+    args.add_argument("-p2hop", "--partial_2hop", type=bool, default=True)  # 是否使用2hop,这里是True,即使用,p2hop是partial_2hop的缩写
     args.add_argument("-outfolder", "--output_folder",
-                      default="./checkpoints/cn/out/", help="Folder name to save the models.")
+                      default="../checkpoints/cn/out/", help="Folder name to save the models.")
 
-    # arguments for GAT
+    # arguments for GAT,GAT是Graph Attention Network的缩写，是一种图神经网络
     args.add_argument("-b_gat", "--batch_size_gat", type=int,
-                      default=100000, help="Batch size for GAT")
+                      default=100000, help="Batch size for GAT")  # gat的batch_size，这里是100000
     args.add_argument("-neg_s_gat", "--valid_invalid_ratio_gat", type=int,
-                      default=2, help="Ratio of valid to invalid triples for GAT training")
-    args.add_argument("-drop_GAT", "--drop_GAT", type=float,
+                      # 意思是valid和invalid的比例，这里是1:1，valid是正样本，invalid是负样本
+                      default=2,
+                      help="Ratio of valid to invalid triples for GAT training")  # gat的valid_invalid_ratio，这里是2
+    args.add_argument("-drop_GAT", "--drop_GAT", type=float,  # gat的dropout，这里是0.3
                       default=0.3, help="Dropout probability for SpGAT layer")
     args.add_argument("-alpha", "--alpha", type=float,
-                      default=0.2, help="LeakyRelu alphs for SpGAT layer")
-    args.add_argument("-out_dim", "--entity_out_dim", type=int, nargs='+',
+                      default=0.2, help="LeakyRelu alphs for SpGAT layer")  # gat的alpha，这里是0.2
+    args.add_argument("-out_dim", "--entity_out_dim", type=int, nargs='+',  # gat的entity_out_dim，这里是[200, 200]
                       default=[100, 200], help="Entity output embedding dimensions")
-    args.add_argument("-h_gat", "--nheads_GAT", type=int, nargs='+',
+    args.add_argument("-h_gat", "--nheads_GAT", type=int, nargs='+',  # gat的nheads_GAT，这里是[1, 1]
                       default=[2, 2], help="Multihead attention SpGAT")
-    args.add_argument("-margin", "--margin", type=float,
+    args.add_argument("-margin", "--margin", type=float,  # gat的margin，这里是1
                       default=1, help="Margin used in hinge loss")
 
-    # arguments for convolution network
+    # arguments for convolution network，conv是convolution的缩写，是一种卷积神经网络
     args.add_argument("-b_conv", "--batch_size_conv", type=int,
-                      default=128, help="Batch size for conv")
+                      default=128, help="Batch size for conv")  # conv的batch_size，这里是128
     args.add_argument("-alpha_conv", "--alpha_conv", type=float,
-                      default=0.2, help="LeakyRelu alphas for conv layer")
+                      default=0.2, help="LeakyRelu alphas for conv layer")  # conv的alpha，这里是0.2
     args.add_argument("-neg_s_conv", "--valid_invalid_ratio_conv", type=int, default=40,
                       help="Ratio of valid to invalid triples for convolution training")
     args.add_argument("-o", "--out_channels", type=int, default=5,
                       help="Number of output channels in conv layer")
     args.add_argument("-drop_conv", "--drop_conv", type=float,
-                      default=0.3, help="Dropout probability for convolution layer")
+                      default=0.3, help="Dropout probability for convolution layer")  # conv的dropout，这里是0.3
 
-    args = args.parse_args()
+    args = args.parse_args()  # 解析参数,这里的args是一个对象，里面包含了上面的参数
     return args
 
 
@@ -97,12 +100,12 @@ print(args)
 # %%
 
 def build_data(dataset, reader_cls, data_dir, sim_relations):
-    # 构建关于训练集验证集测试集的知识图
-    train_network = reader_cls(dataset)
-    dev_network = reader_cls(dataset)
-    test_network = reader_cls(dataset)
+    # 构建关于训练集验证集测试集的知识图谱
+    train_network = reader_cls(dataset)  # 读取训练集
+    dev_network = reader_cls(dataset)  # 读取验证集
+    test_network = reader_cls(dataset)  # 读取测试集
 
-    train_network.read_network(data_dir=data_dir, split="train")
+    train_network.read_network(data_dir=data_dir, split="train")  # 读取训练集，这里的split是train，split是分割的意思，这里是分割训练集
     # 输出训练图谱的信息
     train_network.print_summary()
     node_list = train_network.graph.iter_nodes()
@@ -121,7 +124,7 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
     relation2id = train_network.graph.relation2id
     unique_entities_train = train_network.unique_entities
 
-    # Add sim nodes
+    # Add sim nodes，添加相似节点
     if sim_relations:
         print("Adding sim edges..")
         train_network.add_sim_edges_bert()
@@ -132,24 +135,21 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
     test_triples = reader_utils.get_triple(entity2id, test_network, train_network)
     valid_triples = reader_utils.get_triple(entity2id, dev_network, train_network)
 
-    # build adj list and calculate degrees for sampling
+    # build adj list and calculate degrees for sampling，构建邻接表和计算度数用于采样
     train_adjacency_mat = utils.get_adj(train_triples)
     valid_adjacency_mat = utils.get_adj(test_triples)
     test_adjacency_mat = utils.get_adj(valid_triples)
 
-    train_data = (train_triples, train_adjacency_mat)
+    train_data = (train_triples, train_adjacency_mat)  # 训练集的数据，包括三元组和邻接矩阵
     valid_data = (valid_triples, valid_adjacency_mat)
     test_data = (test_triples, test_adjacency_mat)
 
     return train_data, valid_data, test_data, entity2id, relation2id, train_network, unique_entities_train
 
 
-def load_data(args):
+def load_data(args):  # 加载数据
     train_data, validation_data, test_data, entity2id, relation2id, train_network, unique_entities_train = build_data(
-        "conceptnet",
-        ConceptNetTSVReader,
-        "data/ConceptNet/",
-        False)
+        "conceptnet", ConceptNetTSVReader, "../data/ConceptNet/", False)
 
     entity_embeddings = np.random.randn(
         len(entity2id), args.embedding_size)
@@ -159,23 +159,23 @@ def load_data(args):
 
     corpus = Corpus(args, train_data, validation_data, test_data, entity2id, relation2id,
                     args.batch_size_gat, args.valid_invalid_ratio_gat, unique_entities_train, args.get_2hop)
-
+    # corpus是一个类，里面包含了训练集，验证集，测试集，实体ID，关系ID，batch_size，valid_invalid_ratio，unique_entities_train，get_2hop
     return corpus, torch.FloatTensor(entity_embeddings), torch.FloatTensor(relation_embeddings), train_network
 
 
-# 得到语料库，实体嵌入矩阵，关系嵌入矩阵
+# 得到语料库，实体嵌入矩阵，关系嵌入矩阵，cor
 Corpus_, entity_embeddings, relation_embeddings, train_network = load_data(args)
 print('Initialised Successfully')
 
 # 存储2跳邻居的信息
-#if(args.get_2hop):
+# if(args.get_2hop):
 #    file = args.data + "/2hop.pickle"
 #    with open(file, 'wb') as handle:
 #        pickle.dump(Corpus_.node_neighbors_2hop, handle,
 #                    protocol=pickle.HIGHEST_PROTOCOL)
 
 
-#if(args.use_2hop):
+# if(args.use_2hop):
 #    print("Opening node_neighbors pickle object")
 #    file = args.data + "/2hop.pickle"
 #    with open(file, 'rb') as handle:
@@ -426,6 +426,6 @@ def evaluate_conv(args, unique_entities, train_network):
         Corpus_.get_validation_pred_new(args, model_conv, unique_entities, train_network)
 
 
-#train_gat(args)
-#train_conv(args)
+# train_gat(args)
+# train_conv(args)
 evaluate_conv(args, Corpus_.unique_entities_train, train_network)

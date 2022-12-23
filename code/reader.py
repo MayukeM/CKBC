@@ -1,6 +1,9 @@
 __author__ = "chaitanya"
 
 import logging as logger
+
+from tqdm import tqdm
+
 from graph import Graph
 
 import csv
@@ -17,11 +20,11 @@ class Reader:
 
     def print_summary(self):
 
-        print("\n\nGraph Summary")
+        print("\n\nGraph Summary")  # 打印图的信息 有多少个节点，多少个边，多少个关系
         print("\nNodes: %d" % len(self.graph.nodes))
         print("Edges: %d" % self.graph.edgeCount)
         print("Relations: %d" % len(self.graph.relation2id))
-        density = self.graph.edgeCount / (len(self.graph.nodes) * (len(self.graph.nodes) - 1))
+        density = self.graph.edgeCount / (len(self.graph.nodes) * (len(self.graph.nodes) - 1))  # density是边的数量除以节点的数量
         print("Density: %f" % density)
 
         print("\n******************* Sample Edges *******************")
@@ -74,40 +77,41 @@ class Reader:
 
     def add_sim_edges_bert(self, bert_model):
 
-        sim_counter = 0
-        threshold = 0.95
-        sim_list = []
-        node_list = self.graph.iter_nodes()
+        sim_counter = 0  # 用来计数的
+        threshold = 0.999  # 阈值,大于这个阈值的就是相似的 语义相似度大于阈值 τ，我们就在它们之间添加一条辅助边
+        sim_list = []  # 用来存储相似的边的
+        node_list = self.graph.iter_nodes()  # 迭代器,返回所有的节点
 
-        # 所有节点的向量表示
-        vecs = bert_model.forward(node_list)
+        # 所有节点的向量表示，用于计算相似度，这里用的是bert的向量表示
+        vecs = bert_model.forward(node_list)  # bert_model.forward()是bert的前向传播,返回所有节点的向量表示
         vecs = vecs.cpu().numpy()
 
         # vecs = np.vstack(vecs)
         print("Computed embeddings.")
 
         batch_size = 1000
-        out_sims = []
-        for row_i in range(0, int(vecs.shape[0] / batch_size) + 1):
-            start = row_i * batch_size
+        out_sims = []  # 用来存储相似度的
+        # 用tqdm来显示进度条, 这里很慢,所以用了tqdm，可以看到进度条，知道大概需要多久
+        for row_i in tqdm(range(0, int(vecs.shape[0] / batch_size) + 1)):
+            start = row_i * batch_size  # 开始的位置
             end = min([(row_i + 1) * batch_size, vecs.shape[0]])
             if end <= start:
                 break
-            rows = vecs[start: end]
-            sim = cosine_similarity(rows, vecs)  # rows is O(1) size
+            rows = vecs[start: end]  # 一次取出batch_size个向量
+            sim = cosine_similarity(rows, vecs)  # rows is O(1) size, cosinesimilarity 是计算余弦相似度的函数
             # 2 nodes with unknown text can have perfect similarity
-            sim[sim == 1.0] = 0
-            sim[sim < threshold] = 0
+            sim[sim == 1.0] = 0  # 把相似度为1的都变成0
+            sim[sim < threshold] = 0  # 把相似度小于阈值的都变成0
 
-            for i in range(rows.shape[0]):
-                indices = np.nonzero(sim[i])[0]
+            for i in tqdm(range(rows.shape[0])):
+                indices = np.nonzero(sim[i])[0]  # 返回非零元素的索引
 
                 for index in indices:
                     if index!=i+start:
                         self.add_example(node_list[i+start].name, node_list[index].name, "sim", 1.0)
                         out_sims.append((node_list[i+start].name, node_list[index].name))
                         #self.add_example(node_list[index], node_list[i+start], "sim", 1.0)
-                        sim_counter += 1
+                        sim_counter += 1  # 相似的边的数量加1
                         #if sim_counter > 150000:
                         #    break
 
@@ -118,14 +122,14 @@ class Reader:
         print("Added %d sim edges" % sim_counter)
 
 
-class ConceptNetTSVReader(Reader):
+class ConceptNetTSVReader(Reader):  # 读取conceptnet的数据集
 
     def __init__(self, dataset):
-        logger.info("Reading ConceptNet")
-        self.dataset = dataset
-        self.graph = Graph()
-        self.rel2id = {}
-        self.unique_entities = set()
+        logger.info("Reading ConceptNet")  # 读取conceptnet, 生成图，读取概念网络
+        self.dataset = dataset  # dataset name
+        self.graph = Graph()  # graph object
+        self.rel2id = {}  # relation to id
+        self.unique_entities = set()  # 是一个集合，存储所有的实体，不重复
 
     def read_network(self, data_dir, split="train", train_network=None):
 
@@ -140,28 +144,28 @@ class ConceptNetTSVReader(Reader):
             data = f.readlines()
 
         if split == "test":
-            data = data[:1200]
+            data = data[:1200]  # 只取前1200个
 
         for inst in data:
-            inst = inst.strip()
-            if inst:
+            inst = inst.strip()  # 去掉首尾的空格
+            if inst:  # 如果不是空的，就进行处理
                 inst = inst.split('\t')
                 rel, src, tgt = inst
                 weight = 1.0
-                src = src.lower()
+                src = src.lower()  # 小写
                 tgt = tgt.lower()
-                self.unique_entities.add(src)
+                self.unique_entities.add(src)  # 添加实体
                 self.unique_entities.add(tgt)
                 if split != "train":
                     self.add_example(src, tgt, rel, float(weight), int(weight), train_network)
                 else:
-                    self.add_example(src, tgt, rel, float(weight))
+                    self.add_example(src, tgt, rel, float(weight))  # 添加实例，添加到图中
 
         self.rel2id = self.graph.relation2id
 
     def add_example(self, src, tgt, relation, weight, label=1, train_network=None):
-
-        src_id = self.graph.find_node(src)
+        # add_example()函数是添加实例，添加到图中
+        src_id = self.graph.find_node(src)  # 找到src的id
         if src_id == -1:
             src_id = self.graph.add_node(src)
 
@@ -179,7 +183,7 @@ class ConceptNetTSVReader(Reader):
                                    label,
                                    weight)
 
-        # add nodes/relations from evaluation graphs to training graph too
+        # add nodes/relations from evaluation graphs to training graph too, 添加节点和关系到训练图中
         if train_network is not None and label == 1:
             src_id = train_network.graph.find_node(src)
             if src_id == -1:
@@ -193,7 +197,7 @@ class ConceptNetTSVReader(Reader):
             if relation_id == -1:
                 relation_id = train_network.graph.add_relation(relation)
 
-        return edge
+        return edge  # 返回边，是一个元组
 
 
 class AtomicReader(Reader):
