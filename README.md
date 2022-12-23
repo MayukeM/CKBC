@@ -1,11 +1,33 @@
 # 我的尝试
+## 下载链接
 模型权重链接：
 https://pan.baidu.com/s/1Hjn0qmLnN_NH41KVf46SKg%EF%BC%8C%E6%8F%90%E5%8F%96%E7%A0%81%EF%BC%9AGt63#list/path=%2Fnodes-lm-conceptnet
 nodes-lm-conceptnet/lm_pytorch_model.bin and conceptnet_bert_embeddings.pt
 
 data_bert finetune的模型是（BERT-Large, Uncased）
 https://huggingface.co/bert-large-uncased/tree/main
+## 环境配置
+（autodl服务器主机端口53308），租的远程服务器，pycharm专业版连接
+基本配置：
+- RTX 3090 * 1 卡
+- PyTorch 1.10.0
+- Python3.8 (ubuntu20.4)
+- Cuda 11.3
+- 显存24GB 不够用，跑全量的数据总是报错
 
+安装dgl报错 安装报错，需先升级一个包
+```bash
+pip install -U isort==5.10.1 -i https://pypi.mirrors.ustc.edu.cn/simple
+```
+安装dgl，安装命令从下面找：https://www.dgl.ai/pages/start.html
+最后装了117，但是还报错，解决办法：https://blog.csdn.net/p942005405/article/details/123540807
+```bash
+pip install dgl-cu117 dglgo -f https://data.dgl.ai/wheels/repo.html
+```
+运行直接报错137之类的，一定注意版本对应！！
+先pip uninstall 掉对应的四个库，再重新安装
+
+## 跑代码尝试
 添加致密化后，用余弦相似度计算两个词向量的相似度，相似度大于一定阈值的会添加一条边，关系类型为sim
 但是可以看到下面打印的一条结果，他把图中已有的边也更改了，这样是不是不太好
 而且我哪怕用了更小的数据集（就是把数据只留10000一万条测试集，测试和验证都是800）并且把致密化的阈值提高到
