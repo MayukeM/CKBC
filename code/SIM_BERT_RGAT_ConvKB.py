@@ -116,7 +116,7 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
     relation2id = train_network.graph.relation2id  # {'ReceivesAction': 0, 'AtLocation': 1, 'HasPrerequisite': 2, 'UsedFor': 3,
     unique_entities_train = train_network.unique_entities  # 训练集中的所有节点,是一个集合,不重复 {'make mix drink', 'neighbor house', 'dress up', 'd
 
-    bert_model = BertLayer(dataset)  # 读取bert模型
+    bert_model = BertLayer(dataset)  # 读取bert模型，返回一个BertLayer对象
 
     # Add sim nodes
     if sim_relations:  # 这一步是致密化
