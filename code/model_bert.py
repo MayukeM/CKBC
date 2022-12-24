@@ -67,7 +67,7 @@ class SpGAT(nn.Module):  # SpGAT class, 稀疏图注意力网络，继承自nn.M
         return x, out_relation_1
 
 
-class SpKBGATModified(nn.Module):
+class SpKBGATModified(nn.Module):  # SpKBGATModified class, 稀疏图注意力网络，继承自nn.Module
     def __init__(self, initial_entity_emb, initial_relation_emb, entity_out_dim, relation_out_dim,
                  drop_GAT, alpha, nheads_GAT):
         '''Sparse version of KBGAT
@@ -158,7 +158,7 @@ class SpKBGATModified(nn.Module):
         return out_entity_1, out_relation_1
 
 
-class SpKBGATConvOnly(nn.Module):
+class SpKBGATConvOnly(nn.Module):  # 稀疏的KBGATConvOnly模型
     def __init__(self, bert_model, initial_entity_emb, initial_relation_emb, entity_out_dim, relation_out_dim,
                  drop_GAT, drop_conv, alpha, alpha_conv, nheads_GAT, conv_out_channels):
         '''Sparse version of KBGAT

@@ -12,7 +12,7 @@ class Graph:
         self.relation2id = {}  # 一个空字典，用来存储关系的名字和id
         self.edges = {}
         self.edgeCount = 0
-        self.directed = directed  # 是否有环
+        self.directed = directed  # 是否有向图
         #self.add_node("UNK-NODE")
         #self.add_relation("UNK-REL")
 
@@ -27,18 +27,18 @@ class Graph:
         :param uri: uri of edge
         :return: Edge object
         """
-        new_edge = Edge(node1, node2, rel, label, weight, uri)
+        new_edge = Edge(node1, node2, rel, label, weight, uri)  # 一个边的信息
 
-        if node2 in self.edges[node1]:
+        if node2 in self.edges[node1]:  # 如果node2在self.edges[node1]中
             self.edges[node1][node2].append(new_edge)
         else: 
-            self.edges[node1][node2] = [new_edge]
+            self.edges[node1][node2] = [new_edge]  # Node #0:hockey/Node#1:play on ice
 
         # node1.neighbors.add(node2)
-        node2.neighbors.add(node1)
+        node2.neighbors.add(node1)  # node2.neighbors {Node #0 : hockey}
         self.edgeCount += 1  # 边的数量
 
-        if (self.edgeCount) % 100000 == 0:
+        if (self.edgeCount) % 100000 == 0:  # 每100000条边打印一次
             print("Number of edges: %d" % self.edgeCount, end="\r")
           
         return new_edge      
@@ -49,10 +49,10 @@ class Graph:
         :param name:
         :return:
         """
-        new_node = Node(name, len(self.nodes))  # 一个节点的名字和id, Node#0的意思是第一个节点
-        self.nodes[len(self.nodes)] = new_node  #
-        self.node2id[new_node.name] = len(self.nodes) - 1  #
-        self.edges[new_node] = {}
+        new_node = Node(name, len(self.nodes))  # 一个节点的名字和id, Node#0的意思是第一个节点 Node #0 : hockey
+        self.nodes[len(self.nodes)] = new_node  # defaultdict(None, {0: <graph.Node object at 0x7f2116910fd0>})
+        self.node2id[new_node.name] = len(self.nodes) - 1  #  {'hockey': 0}
+        self.edges[new_node] = {}  # {<graph.Node object at 0x7f2116910fd0>: {}}
         return self.node2id[new_node.name]
 
     def add_relation(self, name):
@@ -62,7 +62,7 @@ class Graph:
         """
         new_relation = Relation(name, len(self.relations))
         self.relations[len(self.relations)] = new_relation
-        self.relation2id[new_relation.name] = len(self.relations) - 1
+        self.relation2id[new_relation.name] = len(self.relations) - 1  # {'ReceivesAction': 0}
         return self.relation2id[new_relation.name]
 
     def find_node(self, name):
@@ -140,10 +140,10 @@ class Graph:
 class Node:
 
     def __init__(self, name, id, lang='en'):
-        self.name = name
-        self.id = id
-        self.lang = lang
-        self.neighbors = set([])
+        self.name = name  # 节点的名字 'hockey'
+        self.id = id  # 节点的id 0
+        self.lang = lang  # 节点的语言 'en'
+        self.neighbors = set([])  # 节点的邻居节点集合 set([])是一个空集合
 
     def get_neighbors(self):
         """
@@ -158,7 +158,7 @@ class Node:
         :param node:
         :return:
         """
-        return len(self.neighbors)
+        return len(self.neighbors)  # 返回邻居节点的数量，度
 
     def __str__(self):
         out = ("Node #%d : %s" % (self.id, self.name))
@@ -168,20 +168,20 @@ class Node:
 class Relation:
 
     def __init__(self, name, id):
-        self.name = name
-        self.id = id
+        self.name = name  # 'ReceivesAction'
+        self.id = id  # 0
 
 
 class Edge:
 
     def __init__(self, node1, node2, relation, label, weight, uri):
-        self.src = node1  # source node，源节点
-        self.tgt = node2  # target node，目标节点
-        self.relation = relation  # relation
+        self.src = node1  # source node，源节点, Node #0 : hockey
+        self.tgt = node2  # target node，目标节点, Node #1 : play on ice
+        self.relation = relation  # relation <graph.Relation object at 0x7f2116910c40> 关系ReceivesAction
         self.label = label  # relation
-        self.weight = weight
-        self.uri = uri
+        self.weight = weight  # 1.0
+        self.uri = uri  #
 
     def __str__(self):
-        out = ("%s: %s --> %s" % (self.relation.name, self.src.name, self.tgt.name))
+        out = ("%s: %s --> %s" % (self.relation.name, self.src.name, self.tgt.name))  # ReceivesAction: hockey --> play on ice
         return out

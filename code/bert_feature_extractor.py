@@ -33,9 +33,9 @@ class InputExample(object):
             label: (Optional) string. The label of the example. This should be
             specified for train and dev examples, but not for test examples.
         """
-        self.text_a = text_a
-        self.text_b = text_b
-        self.label = label
+        self.text_a = text_a  # 'play on ice' 这是三元组中的一个实体
+        self.text_b = text_b  # None
+        self.label = label  # None
 
 
 class InputFeatures(object):
@@ -57,10 +57,10 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_list
     features = []
     for (ex_index, example) in enumerate(examples):
         tokens_a = tokenizer.tokenize(example.text_a)  # 编码节点名称，tokenizer.tokenize()方法会将节点名称分割成一个个token
-
+        # tokens_a = ['play', 'on', 'ice']
         tokens_b = None
         if example.text_b:
-            tokens_b = tokenizer.tokenize(example.text_b)
+            tokens_b = tokenizer.tokenize(example.text_b)  #
             # Modifies `tokens_a` and `tokens_b` in place so that the total
             # length is less than the specified length.
             # Account for [CLS], [SEP], [SEP] with "- 3"
@@ -88,24 +88,24 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_list
         # For classification tasks, the first vector (corresponding to [CLS]) is
         # used as as the "sentence vector". Note that this only makes sense because
         # the entire model is fine-tuned.
-        tokens = ["[CLS]"] + tokens_a + ["[SEP]"]  # 输入序列
-        segment_ids = [0] * len(tokens)  # 输入序列的segment id
+        tokens = ["[CLS]"] + tokens_a + ["[SEP]"]  # 输入序列 ['[CLS]', 'play', 'on', 'ice', '[SEP]']
+        segment_ids = [0] * len(tokens)  # 输入序列的segment id, [0, 0, 0, 0, 0]
 
         if tokens_b:  # 如果有第二个句子
             tokens += tokens_b + ["[SEP]"]
             segment_ids += [1] * (len(tokens_b) + 1)
 
-        input_ids = tokenizer.convert_tokens_to_ids(tokens)  # 转化成ID
+        input_ids = tokenizer.convert_tokens_to_ids(tokens)  # 转化成ID, [101, 2377, 2006, 3256, 102]
         # convert_tokens_to_ids()方法会将token转化成ID，这里的ID是BERT模型中的ID，不是节点ID，Bert模型中的ID是从0开始的连续整数,这里的ID是用来索引BERT模型中的词向量的
         # The mask has 1 for real tokens and 0 for padding tokens. Only real
         # tokens are attended to.
         input_mask = [1] * len(input_ids)  # 输入序列的mask，用来区分padding的部分，1表示不是padding，0表示padding
-
+        # [1, 1, 1, 1, 1]
         # Zero-pad up to the sequence length.  意思是将序列长度补齐到max_seq_length
-        padding = [0] * (max_seq_length - len(input_ids))
-        input_ids += padding
-        input_mask += padding
-        segment_ids += padding
+        padding = [0] * (max_seq_length - len(input_ids))  # 长度25 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        input_ids += padding    # [101, 2377, 2006, 3256, 102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        input_mask += padding   # [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        segment_ids += padding  # [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         assert len(input_ids) == max_seq_length  # 确保序列长度为max_seq_length，否则报错
         assert len(input_mask) == max_seq_length
@@ -116,7 +116,7 @@ def convert_examples_to_features(examples, max_seq_length, tokenizer, label_list
         else:
             label_id = None
 
-        features.append(
+        features.append(  # 将每个样本转化成一个InputFeatures对象
             InputFeatures(input_ids=input_ids,
                           input_mask=input_mask,
                           segment_ids=segment_ids,
@@ -144,10 +144,10 @@ def convert_edges_to_examples(edges, labels, network):
 
 
 def convert_nodes_to_examples(node_list):
-    examples = []
+    examples = []  # 8442个 label text_a text_b
 
-    for node in node_list:
-        text_a = node.name
+    for node in node_list:  # node：Node #1 : play on ice
+        text_a = node.name  # 'play on ice'
         examples.append(
             InputExample(text_a=text_a))  # 节点的名称
 
@@ -157,10 +157,10 @@ def convert_nodes_to_examples(node_list):
 class BertLayer(nn.Module):  # BERT模型，用于节点的表示，输入节点的名称，输出节点的表示
     def __init__(self, dataset):
         super(BertLayer, self).__init__()
-        self.dataset = dataset
-        output_dir = "../data/ConceptNet/nodes-lm-conceptnet/small"
+        self.dataset = dataset  # 数据集
+        output_dir = "../data/ConceptNet/nodes-lm-conceptnet/small"  # BERT模型的路径，这里是预训练好的BERT模型
 
-        self.filename = os.path.join(output_dir, self.dataset + "_bert_embeddings.pt")
+        self.filename = os.path.join(output_dir, self.dataset + "_bert_embeddings.pt")  # BERT模型的输出文件'../data/ConceptNet/nodes-lm-conceptnet/small/conceptnet_bert_embeddings.pt'
         print(self.filename)
 
         if os.path.isfile(self.filename):  # 如果已经存在预训练的节点表示，则直接加载
@@ -169,12 +169,12 @@ class BertLayer(nn.Module):  # BERT模型，用于节点的表示，输入节点
 
         self.exists = False
         self.max_seq_length = 30
-        self.eval_batch_size = 64
+        self.eval_batch_size = 64  # 评估时的batch_size，这里是64，即每次评估64个节点
         self.tokenizer = BertTokenizer.from_pretrained('../data_bert/vocab.txt', do_lower_case=True)  # 之后做更改
         # output_model_file = os.path.join(output_dir, "lm_pytorch_model.bin")
         # output_model_file = os.path.join("bert_model_embeddings/nodes-lm-conceptnet/", "lm_pytorch_model.bin")
         output_model_file = '../data_bert/'
-        print("Loading model from %s" % output_dir)
+        print("Loading model from %s" % output_dir)  # '../data/ConceptNet/nodes-lm-conceptnet/small'
         # config = BertConfig.from_pretrained('data_bert/config.json')
         # self.bert_net = torch.load(output_model_file, map_location='cpu')
         self.bert_model = BertForSequenceClassification.from_pretrained(output_model_file, num_labels=2)
@@ -191,19 +191,22 @@ class BertLayer(nn.Module):  # BERT模型，用于节点的表示，输入节点
         #
         if self.exists:  # 如果已经存在，直接读取
             print("Loading BERT embeddings from disk..")
-            # return torch.load(self.filename, map_location='cpu')
-            return torch.load(self.filename)  # 读取预训练的节点表示,这里的self.filename是一个文件名
-
+            # 先判断一下gpu是否可用
+            if torch.cuda.is_available():  # 如果gpu可用
+                return torch.load(self.filename)
+            else:
+                return torch.load(self.filename, map_location='cpu')
+        # pycharm中把一句代码变成try except的方法是：选中代码，按ctrl+alt+t
         print("Computing BERT embeddings..")  # 否则，计算，然后保存
         self.bert_model.eval()  # 设置为评估模式，不进行梯度更新
 
         eval_examples = convert_nodes_to_examples(node_list)  # 列表中每个元素是一个节点Node类
-        eval_features = convert_examples_to_features(
-            eval_examples, max_seq_length=self.max_seq_length, tokenizer=self.tokenizer)
+        eval_features = convert_examples_to_features(  # 将节点转换为特征，即将节点的名称转换为BERT模型的输入，即将节点的名称转换为token
+            eval_examples, max_seq_length=self.max_seq_length, tokenizer=self.tokenizer)  # 8442个节点，每个节点的名称转换为token
 
-        all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
-        all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
+        all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)  # 【8442，30】
+        all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)  # 【8442，30】
+        all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)  # 【8442，30】
         eval_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids)  # 将数据转换为TensorDataset
 
         # Run prediction for full data，使用DataLoader进行数据的批处理

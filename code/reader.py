@@ -21,10 +21,10 @@ class Reader:
     def print_summary(self):
 
         print("\n\nGraph Summary")  # 打印图的信息 有多少个节点，多少个边，多少个关系
-        print("\nNodes: %d" % len(self.graph.nodes))
-        print("Edges: %d" % self.graph.edgeCount)
-        print("Relations: %d" % len(self.graph.relation2id))
-        density = self.graph.edgeCount / (len(self.graph.nodes) * (len(self.graph.nodes) - 1))  # density是边的数量除以节点的数量
+        print("\nNodes: %d" % len(self.graph.nodes))  # 节点数7962
+        print("Edges: %d" % self.graph.edgeCount)   # 边数  10000
+        print("Relations: %d" % len(self.graph.relation2id))  # 关系数  28
+        density = self.graph.edgeCount / (len(self.graph.nodes) * (len(self.graph.nodes) - 1))  # density是边的数量除以节点的数量,这里是0.000158
         print("Density: %f" % density)
 
         print("\n******************* Sample Edges *******************")
@@ -84,13 +84,13 @@ class Reader:
 
         # 所有节点的向量表示，用于计算相似度，这里用的是bert的向量表示
         vecs = bert_model.forward(node_list)  # bert_model.forward()是bert的前向传播,返回所有节点的向量表示
-        vecs = vecs.cpu().numpy()
+        vecs = vecs.cpu().numpy()  # 转换成numpy数组 【8442,1024】 1024是bert的向量维度，8442是节点的数量
 
         # vecs = np.vstack(vecs)
-        print("Computed embeddings.")
+        print("Computed embeddings.")  # 打印信息，已经计算好了向量表示
 
-        batch_size = 1000
-        out_sims = []  # 用来存储相似度的
+        batch_size = 1000  # 每次计算相似度的时候，每个batch的大小
+        out_sims = []  # 用来存储相似度的，这里是一个二维数组，每个元素是一个一维数组，里面存储的是每个节点与其他节点的相似度
         # 用tqdm来显示进度条, 这里很慢,所以用了tqdm，可以看到进度条，知道大概需要多久
         for row_i in tqdm(range(0, int(vecs.shape[0] / batch_size) + 1)):
             start = row_i * batch_size  # 开始的位置
@@ -119,49 +119,50 @@ class Reader:
         # with open("bert_atomic_sims.txt", 'w') as f:
         #     f.writelines([s[0] + "\t" + s[1] + "\n" for s in out_sims])
 
-        print("Added %d sim edges" % sim_counter)
+        print("Added %d sim edges" % sim_counter)  # 添加了多少个相似的边， 942 【0.999】
 
 
 class ConceptNetTSVReader(Reader):  # 读取conceptnet的数据集
 
     def __init__(self, dataset):
-        logger.info("Reading ConceptNet")  # 读取conceptnet, 生成图，读取概念网络
-        self.dataset = dataset  # dataset name
-        self.graph = Graph()  # graph object
+        logger.info("Reading ConceptNet")  # 读取conceptnet, 生成图，读取概念网络，logger.info是打印日志的，打印到了log文件中，log文件的路径在config.py中
+        self.dataset = dataset  # conceptnet
+        self.graph = Graph()  # graph object, 图对象
         self.rel2id = {}  # relation to id
         self.unique_entities = set()  # 是一个集合，存储所有的实体，不重复
 
     def read_network(self, data_dir, split="train", train_network=None):
 
         if split == "train":
-            data_path = os.path.join(data_dir, "train.txt")
-        elif split == "valid":
-            data_path = os.path.join(data_dir, "valid.txt")
+            data_path = os.path.join(data_dir, "train.txt")  # 训练集的路径'../data/ConceptNet/small_data/train.txt'
+        elif split == "valid":  # 验证集的作用是用来调参的，调参的时候用的是验证集，验证集的数据是不参与训练的，是吗？
+            data_path = os.path.join(data_dir, "valid.txt")  # 验证集的路径'../data/ConceptNet/small_data/valid.txt'
         elif split == "test":
             data_path = os.path.join(data_dir, "test.txt")
 
         with open(data_path) as f:
-            data = f.readlines()
+            data = f.readlines()  # 读取所有的行,返回一个列表,第一行数据：ReceivesAction	hockey	play on ice
 
         if split == "test":
             data = data[:1200]  # 只取前1200个
 
-        for inst in data:
+        for inst in data:  # inst是一行数据， 例如：'ReceivesAction\thockey\tplay on ice'
             inst = inst.strip()  # 去掉首尾的空格
             if inst:  # 如果不是空的，就进行处理
-                inst = inst.split('\t')
-                rel, src, tgt = inst
-                weight = 1.0
+                inst = inst.split('\t')  # 以\t为分隔符，分割成一个列表,['ReceivesAction', 'hockey', 'play on ice']
+                rel, src, tgt = inst  # rel是关系，src是源实体，tgt是目标实体 'ReceivesAction', 'hockey', 'play on ice'
+                weight = 1.0  # 权重,这里都是1.0
                 src = src.lower()  # 小写
                 tgt = tgt.lower()
-                self.unique_entities.add(src)  # 添加实体
+                self.unique_entities.add(src)  # 添加实体,集合中不会重复 add() 方法用于给集合添加元素，如果添加的元素在集合中已存在，则不执行任何操作。
                 self.unique_entities.add(tgt)
                 if split != "train":
                     self.add_example(src, tgt, rel, float(weight), int(weight), train_network)
                 else:
                     self.add_example(src, tgt, rel, float(weight))  # 添加实例，添加到图中
 
-        self.rel2id = self.graph.relation2id
+        self.rel2id = self.graph.relation2id  #
+
 
     def add_example(self, src, tgt, relation, weight, label=1, train_network=None):
         # add_example()函数是添加实例，添加到图中
@@ -177,11 +178,11 @@ class ConceptNetTSVReader(Reader):  # 读取conceptnet的数据集
         if relation_id == -1:
             relation_id = self.graph.add_relation(relation)
 
-        edge = self.graph.add_edge(self.graph.nodes[src_id],
-                                   self.graph.nodes[tgt_id],
-                                   self.graph.relations[relation_id],
-                                   label,
-                                   weight)
+        edge = self.graph.add_edge(self.graph.nodes[src_id],  # Node #0 : hockey
+                                   self.graph.nodes[tgt_id],  # Node #1 : play on ice
+                                   self.graph.relations[relation_id],  # Relation #0 : ReceivesAction
+                                   label,  # 1
+                                   weight)  # 1.0
 
         # add nodes/relations from evaluation graphs to training graph too, 添加节点和关系到训练图中
         if train_network is not None and label == 1:

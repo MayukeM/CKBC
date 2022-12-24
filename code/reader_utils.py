@@ -90,7 +90,7 @@ def prepare_batch_dgl(vocab, test_network, train_network):
 
 
 def get_triple(vocab, test_network, train_network):
-    all_edges = []
+    all_edges = []  # 所有的边
     for edge in test_network.graph.iter_edges():
         src_id = get_vocab_idx(vocab, edge.src.name)
         tgt_id = get_vocab_idx(vocab, edge.tgt.name)
