@@ -24,22 +24,22 @@ class SpGAT(nn.Module):  # SpGAT class, 稀疏图注意力网络，继承自nn.M
         self.dropout = dropout  # dropout，丢弃率，防止过拟合，一般在0.5-0.8之间
         self.dropout_layer = nn.Dropout(self.dropout)  # dropout层，防止过拟合
         self.attentions = [SpGraphAttentionLayer(num_nodes, nfeat,  # num_nodes:节点数，nfeat:输入维度
-                                                 nhid,  # nhid:输出维度
-                                                 relation_dim,  # relation_dim:关系维度
-                                                 dropout=dropout,  # dropout:丢弃率
-                                                 alpha=alpha,  # alpha:缩放因子
+                                                 nhid,  # nhid:输出维度100
+                                                 relation_dim,  # relation_dim:关系维度200
+                                                 dropout=dropout,  # dropout:丢弃率0.3
+                                                 alpha=alpha,  # alpha:缩放因子0.2
                                                  concat=True)  # concat:是否拼接
-                           for _ in range(nheads)]
+                           for _ in range(nheads)]  # nheads:多头注意力的头数 2
 
-        for i, attention in enumerate(self.attentions):
-            self.add_module('attention_{}'.format(i), attention)
+        for i, attention in enumerate(self.attentions):  #[SpGraphAttentionLayer (200 -> 100), SpGraphAttentionLayer (200 -> 100)]
+            self.add_module('attention_{}'.format(i), attention)  # 添加attention层, 用于多头注意力
 
         # W matrix to convert h_input to h_output dimension
-        self.W = nn.Parameter(torch.zeros(size=(relation_dim, nheads * nhid)))
-        nn.init.xavier_uniform_(self.W.data, gain=1.414)
+        self.W = nn.Parameter(torch.zeros(size=(relation_dim, nheads * nhid)))  # W矩阵[200,200]，用于将h_input转换为h_output维度
+        nn.init.xavier_uniform_(self.W.data, gain=1.414)  # 初始化W矩阵，均匀分布，gain=1.414
 
-        self.out_att = SpGraphAttentionLayer(num_nodes, nhid * nheads,
-                                             nheads * nhid, nheads * nhid,
+        self.out_att = SpGraphAttentionLayer(num_nodes, nhid * nheads,  #8442, 200*2
+                                             nheads * nhid, nheads * nhid, #2*100, 2*100
                                              dropout=dropout,
                                              alpha=alpha,
                                              concat=False
@@ -81,26 +81,26 @@ class SpKBGATModified(nn.Module):  # SpKBGATModified class, 稀疏图注意力�
 
         super().__init__()  # 调用父类的构造函数
 
-        self.num_nodes = initial_entity_emb.shape[0]  # number of nodes in the Graph，图中的节点数量
-        self.entity_in_dim = initial_entity_emb.shape[1]  # Entity Input Embedding dimensions，实体的输入维度
-        self.entity_out_dim_1 = entity_out_dim[0]  # Entity Output Embedding dimensions，实体的输出维度
-        self.nheads_GAT_1 = nheads_GAT[0]  # Used for Multihead attention, passed as a list，用于多头注意力的头数
-        self.entity_out_dim_2 = entity_out_dim[1]  # Entity Output Embedding dimensions，实体的输出维度
-        self.nheads_GAT_2 = nheads_GAT[1]  # Used for Multihead attention, passed as a list，用于多头注意力的头数
+        self.num_nodes = initial_entity_emb.shape[0]  # number of nodes in the Graph，图中的节点数量8442
+        self.entity_in_dim = initial_entity_emb.shape[1]  # Entity Input Embedding dimensions，实体的输入维度200
+        self.entity_out_dim_1 = entity_out_dim[0]  # Entity Output Embedding dimensions，实体的输出维度100
+        self.nheads_GAT_1 = nheads_GAT[0]  # Used for Multihead attention, passed as a list，用于多头注意力的头数2
+        self.entity_out_dim_2 = entity_out_dim[1]  # Entity Output Embedding dimensions，实体的输出维度200
+        self.nheads_GAT_2 = nheads_GAT[1]  # Used for Multihead attention, passed as a list，用于多头注意力的头数2
 
         # Properties of Relations  关系的属性
-        self.num_relation = initial_relation_emb.shape[0]  # number of unique relations，关系的数量
-        self.relation_dim = initial_relation_emb.shape[1]  # Relation Embedding dimensions，关系的维度
-        self.relation_out_dim_1 = relation_out_dim[0]  # Relation Output Embedding dimensions，关系的输出维度
+        self.num_relation = initial_relation_emb.shape[0]  # number of unique relations，关系的数量29
+        self.relation_dim = initial_relation_emb.shape[1]  # Relation Embedding dimensions，关系的维度200
+        self.relation_out_dim_1 = relation_out_dim[0]  # Relation Output Embedding dimensions，关系的输出维度100
 
-        self.drop_GAT = drop_GAT  # dropout rate for GAT layers，GAT层的dropout率
+        self.drop_GAT = drop_GAT  # dropout rate for GAT layers，GAT层的dropout率0.3
         self.alpha = alpha      # For leaky relu，用于leaky relu，leaky relu是一种激活函数，用于解决relu激活函数的一些问题
 
         self.final_entity_embeddings = nn.Parameter(  # Final Entity Embeddings，最终的实体嵌入
-            torch.randn(self.num_nodes, self.entity_out_dim_1 * self.nheads_GAT_1))  # 用于存储最终的实体嵌入
+            torch.randn(self.num_nodes, self.entity_out_dim_1 * self.nheads_GAT_1))  # 用于存储最终的实体嵌入【8442，100*2】
 
         self.final_relation_embeddings = nn.Parameter(  # Final Relation Embeddings，最终的关系嵌入，nn.Parameter()是一个tensor，但是会被自动添加到模型的参数列表中
-            torch.randn(self.num_relation, self.entity_out_dim_1 * self.nheads_GAT_1))  # 用于存储最终的关系嵌入
+            torch.randn(self.num_relation, self.entity_out_dim_1 * self.nheads_GAT_1))  # 用于存储最终的关系嵌入【29，100*2】
 
         self.entity_embeddings = nn.Parameter(initial_entity_emb)  # Entity Embeddings，实体嵌入
         self.relation_embeddings = nn.Parameter(initial_relation_emb)  # Relation Embeddings，关系嵌入
@@ -110,7 +110,7 @@ class SpKBGATModified(nn.Module):  # SpKBGATModified class, 稀疏图注意力�
 
         self.W_entities = nn.Parameter(torch.zeros(
             size=(self.entity_in_dim, self.entity_out_dim_1 * self.nheads_GAT_1)))
-        nn.init.xavier_uniform_(self.W_entities.data, gain=1.414)
+        nn.init.xavier_uniform_(self.W_entities.data, gain=1.414)  # 初始化实体嵌入矩阵xavier_uniform_()是xavier初始化的一种，gain是缩放因子
 
     def forward(self, Corpus_, adj, batch_inputs, train_indices_nhop):
         # getting edge list

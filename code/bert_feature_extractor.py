@@ -180,7 +180,7 @@ class BertLayer(nn.Module):  # BERT模型，用于节点的表示，输入节点
         self.bert_model = BertForSequenceClassification.from_pretrained(output_model_file, num_labels=2)
         # self.bert_model.load_state_dict(self.bert_net)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.bert_model.to(self.device)
+        self.bert_model.to(self.device)  # 将模型放到GPU上
 
         # Make BERT parameters non-trainable
         # bert_params = list(self.bert_model.parameters())
@@ -278,5 +278,6 @@ class BertLayer(nn.Module):  # BERT模型，用于节点的表示，输入节点
 
     def save_to_disk(self, tensor, idx):
         # torch.save(tensor, self.dataset + str(idx) + "_bert_embeddings.pt")
-        torch.save(tensor, self.dataset + "_bert_embeddingss.pt")
+        # torch.save的路径设置是相对于当前文件的路径
+        torch.save(tensor, '../data/ConceptNet/nodes-lm-conceptnet/small'+ self.dataset + "_bert_embeddings.pt")
 

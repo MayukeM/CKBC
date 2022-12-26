@@ -100,10 +100,10 @@ def get_triple(vocab, test_network, train_network):
 
 
 def create_entity_dicts(all_tuples, num_rels, sim_relations=False):
-    e1_to_multi_e2 = {}
-    e2_to_multi_e1 = {}
-
-    for tup in all_tuples:
+    e1_to_multi_e2 = {}  # {(0, 0): [1], (1, 28): [0], (0, 5): [3099, 3672, 1650, 5750, 802], (3099, 33): [0
+    e2_to_multi_e1 = {}  # {(1, 28): [0], (3099, 33): [0, 1795, 3022, 4510, 6758], (3672, 33): [0], (1650, 33):
+    # (0, 0): [1], 分别是实体1和关系的id，实体2的id列表
+    for tup in all_tuples:  # tup: (0, 0, 1)
         e1, rel, e2 = tup
 
         # No need to use sim edges for decoding, 不需要用sim边进行解码

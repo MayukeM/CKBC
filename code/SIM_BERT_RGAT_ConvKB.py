@@ -36,8 +36,8 @@ def parse_args():
     args.add_argument("-d", "--dataset", type=str, default="conceptnet", help="dataset to use")  # 数据集，默认值为conceptnet
     args.add_argument("-data", "--data", default="../data/ConceptNet/small_data",
                       help="data directory")  # 数据集目录，默认值为../data/ConceptNet/
-    args.add_argument("-e_g", "--epochs_gat", type=int, default=3000, help="Number of epochs")  # gat训练轮数，默认值为3000
-    args.add_argument("-e_c", "--epochs_conv", type=int, default=200, help="Number of epochs")  # conv训练轮数，默认值为200
+    args.add_argument("-e_g", "--epochs_gat", type=int, default=10, help="Number of epochs")  # gat训练轮数，默认值为3000
+    args.add_argument("-e_c", "--epochs_conv", type=int, default=5, help="Number of epochs")  # conv训练轮数，默认值为200
     args.add_argument("-w_gat", "--weight_decay_gat", type=float, default=0.00001,
                       help="L2 reglarization for gat")  # gat的L2正则化系数，默认值为0.00001
     args.add_argument("-w_conv", "--weight_decay_conv", type=float, default=0.000,
@@ -132,7 +132,7 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
     all_tuples = train_triples + valid_triples + test_triples  # 12542个三元组，[(0, 0, 1), (0, 5, 3099), (0, 5, 3672), (0, 5, 1650), (0, 5, 5750), (2, 1, 3),
 
     # build adj list and calculate degrees for sampling
-    train_adjacency_mat = utils.get_adj(train_triples)  # ([1, 3099, 3672, 1650, 5750, 3, 302, 1003, 1177, 5181, 7632, 8188, 5,
+    train_adjacency_mat = utils.get_adj(train_triples)  # 三个列表分是头、关系的id([1, 3099, 3672, 1650, 5750, 3, 302, 1003, 1177, 5181, 7632, 8188, 5,
     valid_adjacency_mat = utils.get_adj(test_triples)   # ([(4510, 5, 802), (4510, 5, 1650), (802, 10, 68), (1775, 5, 2560), (462, 12, 6486),
     test_adjacency_mat = utils.get_adj(valid_triples)  # ([3582, 6517, 6801, 807, 6085, 1857, 742, 7963, 2252, 8004, 8009, 3805,
 
@@ -169,7 +169,7 @@ def load_data(args):
     corpus = Corpus(args, train_data, validation_data, test_data, entity2id, relation2id, args.batch_size_gat,
                     args.valid_invalid_ratio_gat, unique_entities_train, args.get_2hop)
 
-    return corpus, torch.FloatTensor(entity_embeddings), torch.FloatTensor(
+    return corpus, torch.FloatTensor(entity_embeddings), torch.FloatTensor(  # floatTensor是一个32位浮点数的tensor
         relation_embeddings), corpus_no_sim, bert_model, train_network, train_data, test_data, all_e1_to_multi_e2, test_data_no_sim, train_network_no_sim
 
 
@@ -187,10 +187,10 @@ if (args.get_2hop):
 
 if (args.use_2hop):
     print("Opening node_neighbors pickle object")
-    file = args.data + "/2hop.pickle"
-    with open(file, 'rb') as handle:
-        node_neighbors_2hop = pickle.load(handle)  # 2跳邻居的信息
-
+    file = args.data + "/2hop.pickle"  # '../data/ConceptNet/small_data' + "/2hop.pickle"
+    with open(file, 'rb') as handle:  # 读取2hop.pickle文件,handle是一个文件对象
+        node_neighbors_2hop = pickle.load(handle)  # 2跳邻居的信息  {0: {2: [((0, 5), (1422, 1650)), ((5, 5), (1861, 1650)), ((1, 5), (6
+        # {0: {2: [((0, 5), (1422, 1650)), ((5, 5), (1861, 1650)), ((1, 5), (695, 1650)), ((3
 print("Initial entity dimensions {} , relation dimensions {}".format(  # 实体和关系的维度
     entity_embeddings.size(), relation_embeddings.size()))  # FB：【14541，100】，【237，100】
 # %%
@@ -241,8 +241,8 @@ def train_gat(args):
     if CUDA:
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
-            model_gat = nn.DataParallel(model_gat,
-                                        device_ids=[0, 1, 2, 3])  # multi-GPU, multi-node, device_ids=[0,1,2,3]
+            model_gat = nn.DataParallel(model_gat,  #
+                                        device_ids=[0])  # multi-GPU, multi-node, device_ids=[0,1,2,3]
         else:
             model_gat.cuda()
         # model_gat.cuda()
@@ -273,13 +273,13 @@ def train_gat(args):
     epoch_losses = []  # losses of all epochs
     print("Number of epochs {}".format(args.epochs_gat))
 
-    for epoch in range(args.epochs_gat):
+    for epoch in range(args.epochs_gat):  # 3000
         print("\nepoch-> ", epoch)
-        random.shuffle(Corpus_.train_triples)
+        random.shuffle(Corpus_.train_triples)  # 训练集三元组，包含致密化的三元组
         Corpus_.train_indices = np.array(
             list(Corpus_.train_triples)).astype(np.int32)
 
-        model_gat.train()  # getting in training mode
+        model_gat.train()  # getting in training mode，训练模式
         start_time = time.time()
         epoch_loss = []
 
@@ -288,7 +288,7 @@ def train_gat(args):
             num_iters_per_epoch = len(
                 Corpus_.train_indices) // args.batch_size_gat
         else:
-            num_iters_per_epoch = (
+            num_iters_per_epoch = (  # 一个epoch里的迭代次数86，训练集的大小/每个batch的大小
                                           len(Corpus_.train_indices) // args.batch_size_gat) + 1
 
         for iters in range(num_iters_per_epoch):
@@ -349,11 +349,11 @@ def train_conv(args):
     if CUDA:
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
-            model_conv = nn.DataParallel(model_conv,
-                                         device_ids=[0, 1, 2, 3])  # multi-GPU, multi-node, device_ids=[0,1,2,3]
+            model_conv = nn.DataParallel(model_conv,  #终端输入 nvidia-smi
+                                         device_ids=[0, 1,])  # multi-GPU, multi-node, device_ids=[0,1,2,3]
         else:
             model_conv.cuda()
-        model_gat.cuda()
+        model_gat.cuda() # model_gat.cuda()
 
     model_gat.load_state_dict(torch.load(
         '{}/trained_{}.pth'.format(args.output_folder, args.epochs_gat - 1)), strict=False)

@@ -25,11 +25,11 @@ class Corpus:  # 语料库, 用于存储数据, 以及生成batch
         self.test_triples = test_data[0]
 
         #self.headTailSelector = headTailSelector  # for selecting random entities
-        self.entity2id = entity2id
+        self.entity2id = entity2id  # 实体ID
         self.id2entity = {v: k for k, v in self.entity2id.items()}
         self.relation2id = relation2id
         self.id2relation = {v: k for k, v in self.relation2id.items()}
-        self.batch_size = batch_size
+        self.batch_size = batch_size  # 128
         # ratio of valid to invalid samples per batch for training ConvKB Model
         self.invalid_valid_ratio = int(valid_to_invalid_samples_ratio)
 
@@ -37,13 +37,13 @@ class Corpus:  # 语料库, 用于存储数据, 以及生成batch
             self.graph = self.get_graph()
             self.node_neighbors_2hop = self.get_further_neighbors()
 
-        self.unique_entities_train = [self.entity2id[i] for i in unique_entities_train]
+        self.unique_entities_train = [self.entity2id[i] for i in unique_entities_train]  # [6601, 2759, 4486, 2445, 1607, 5953, 281,
 
 
-        self.train_indices = np.array(
+        self.train_indices = np.array(  # 训练数据的索引，应该就是把三元组转成numpy数组
             list(self.train_triples)).astype(np.int32)  # 训练数据的索引，即三元组，转换为numpy数组，数据类型为int32，astype()函数用于转换数据类型
         # These are valid triples, hence all have value 1
-        self.train_values = np.array(
+        self.train_values = np.array(  # shape 【10000， 1】
             [[1]] * len(self.train_triples)).astype(np.float32)
 
         self.validation_indices = np.array(
@@ -62,7 +62,7 @@ class Corpus:  # 语料库, 用于存储数据, 以及生成batch
 
         # For training purpose，用于训练目的
         self.batch_indices = np.empty(  # 生成空数组, 用于存储batch的索引, empty()函数用于生成空数组,数组的初始值为未初始化的，并且将包含创建数组时内存中的任意值。数组可能包含0和-2147483648
-            (self.batch_size * (self.invalid_valid_ratio + 1), 3)).astype(np.int32)  # 128*(4+1), 3，即形状为(640, 3)
+            (self.batch_size * (self.invalid_valid_ratio + 1), 3)).astype(np.int32)  # 128*(4+1), 3，即形状为(640, 3) 全0矩阵
         self.batch_values = np.empty(
             (self.batch_size * (self.invalid_valid_ratio + 1), 1)).astype(np.float32)  # 128*(4+1), 1，即形状为(640, 1)
 
@@ -328,13 +328,13 @@ class Corpus:  # 语料库, 用于存储数据, 以及生成batch
         return neighbors
 
     def get_batch_nhop_neighbors_all(self, args, batch_sources, node_neighbors, nbd_size=2):
-        batch_source_triples = []
-        print("length of unique_entities ", len(batch_sources)) # FB：14505
+        batch_source_triples = []  # [[2667, 5, 5, 193], [2667, 5, 5, 987], [7907, 12, 5, 1887], [79
+        print("length of unique_entities ", len(batch_sources)) # FB：14505   7962
         count = 0
         for source in batch_sources:
-            # randomly select from the list of neighbors
+            # randomly select from the list of neighbors，随机选择
             if source in node_neighbors.keys():
-                nhop_list = node_neighbors[source][nbd_size]
+                nhop_list = node_neighbors[source][nbd_size]  #
 
                 for i, tup in enumerate(nhop_list):
                     if(args.partial_2hop and i >= 2):
@@ -342,7 +342,7 @@ class Corpus:  # 语料库, 用于存储数据, 以及生成batch
 
                     count += 1
                     batch_source_triples.append([source, nhop_list[i][0][-1], nhop_list[i][0][0],
-                                                 nhop_list[i][1][0]]) # 实体；关系；关系；实体
+                                                 nhop_list[i][1][0]]) # 实体；关系；关系；实体  [[2667, 5, 5, 193]]
 
         return np.array(batch_source_triples).astype(np.int32)
 

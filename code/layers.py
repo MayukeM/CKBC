@@ -136,21 +136,21 @@ class SpGraphAttentionLayer(nn.Module):
 
     def __init__(self, num_nodes, in_features, out_features, nrela_dim, dropout, alpha, concat=True):
         super(SpGraphAttentionLayer, self).__init__()  # 调用父类的构造函数，即nn.Module的构造函数
-        self.in_features = in_features  # 输入特征维度
-        self.out_features = out_features  # 输出特征维度
-        self.num_nodes = num_nodes  # 节点数
-        self.alpha = alpha  # leakyrelu的参数，用于计算leakyrelu的梯度
-        self.concat = concat
-        self.nrela_dim = nrela_dim
+        self.in_features = in_features  # 输入特征维度200
+        self.out_features = out_features  # 输出特征维度100
+        self.num_nodes = num_nodes  # 节点数8442
+        self.alpha = alpha  # leakyrelu的参数，用于计算leakyrelu的梯度0.2
+        self.concat = concat#  #True，表示将输入和输出拼接起来
+        self.nrela_dim = nrela_dim  # 关系维度100,即relation embedding的维度
 
         self.a = nn.Parameter(torch.zeros(  # nn.Parameter()是一个特殊的Tensor，当它被赋值为一个Module的属性时，它会被自动添加到模块的参数列表里
-            size=(out_features, 2 * in_features + nrela_dim)))
-        nn.init.xavier_normal_(self.a.data, gain=1.414)
+            size=(out_features, 2 * in_features + nrela_dim)))  # 100， 2*200+200=600  [100,600]全0矩阵
+        nn.init.xavier_normal_(self.a.data, gain=1.414)  # 初始化参数，均值为0，方差为1，gain=1.414，gain是一个放大系数，用于调整方差
         self.a_2 = nn.Parameter(torch.zeros(size=(1, out_features)))  # nn.Parameter()是一个特殊的Tensor，当它被赋值为一个Module的属性时，它会被自动添加到模块的参数列表里
         nn.init.xavier_normal_(self.a_2.data, gain=1.414)  # nn.init.xavier_normal_()是用来初始化权重的，gain是一个放大系数，用来控制输出的方差，使得梯度不会消失或者爆炸
 
-        self.dropout = nn.Dropout(dropout)  # nn.Dropout()是用来防止过拟合的
-        self.leakyrelu = nn.LeakyReLU(self.alpha)  # nn.LeakyReLU()是用来增加非线性的
+        self.dropout = nn.Dropout(dropout)  # nn.Dropout()是用来防止过拟合的Dropout(p=0.3, inplace=False)
+        self.leakyrelu = nn.LeakyReLU(self.alpha)  # nn.LeakyReLU()是用来增加非线性的LeakyReLU(negative_slope=0.2)
         self.special_spmm_final = SpecialSpmmFinal()  # 自定义的稀疏矩阵乘法
 
     def forward(self, input, edge, edge_embed, edge_list_nhop, edge_embed_nhop):
