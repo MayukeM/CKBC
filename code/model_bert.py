@@ -34,7 +34,7 @@ class SpGAT(nn.Module):  # SpGAT class, 稀疏图注意力网络，继承自nn.M
         for i, attention in enumerate(self.attentions):  #[SpGraphAttentionLayer (200 -> 100), SpGraphAttentionLayer (200 -> 100)]
             self.add_module('attention_{}'.format(i), attention)  # 添加attention层, 用于多头注意力
 
-        # W matrix to convert h_input to h_output dimension
+        # W matrix to convert h_input to h_output dimension，W矩阵用于将h_input转换为h_output维度
         self.W = nn.Parameter(torch.zeros(size=(relation_dim, nheads * nhid)))  # W矩阵[200,200]，用于将h_input转换为h_output维度
         nn.init.xavier_uniform_(self.W.data, gain=1.414)  # 初始化W矩阵，均匀分布，gain=1.414
 
@@ -96,7 +96,7 @@ class SpKBGATModified(nn.Module):  # SpKBGATModified class, 稀疏图注意力�
         self.drop_GAT = drop_GAT  # dropout rate for GAT layers，GAT层的dropout率0.3
         self.alpha = alpha      # For leaky relu，用于leaky relu，leaky relu是一种激活函数，用于解决relu激活函数的一些问题
 
-        self.final_entity_embeddings = nn.Parameter(  # Final Entity Embeddings，最终的实体嵌入
+        self.final_entity_embeddings = nn.Parameter(  # Final Entity Embeddings，最终的实体嵌入, nn.parameter是一个tensor，但是会被自动添加到模型的参数列表中
             torch.randn(self.num_nodes, self.entity_out_dim_1 * self.nheads_GAT_1))  # 用于存储最终的实体嵌入【8442，100*2】
 
         self.final_relation_embeddings = nn.Parameter(  # Final Relation Embeddings，最终的关系嵌入，nn.Parameter()是一个tensor，但是会被自动添加到模型的参数列表中
@@ -212,7 +212,7 @@ class SpKBGATConvOnly(nn.Module):  # 稀疏的KBGATConvOnly模型
         #    head_bert_embs = self.mask_by_schedule(head_bert_embs, epoch)
         #    tail_bert_embs = self.mask_by_schedule(tail_bert_embs, epoch)
 
-        head_entity_embs = torch.cat([self.final_entity_embeddings[batch_inputs[:, 0], :], head_bert_embs], dim=1)
+        head_entity_embs = torch.cat([self.final_entity_embeddings[batch_inputs[:, 0], :], head_bert_embs], dim=1)  # gat的输出和bert的输出拼接
         tail_entity_embs = torch.cat([self.final_entity_embeddings[batch_inputs[:, 2], :], tail_bert_embs], dim=1)
         out_conv = self.convKB(head_entity_embs, tail_entity_embs, self.final_relation_embeddings, batch_inputs)
         return out_conv

@@ -30,8 +30,8 @@ class Corpus:  # 语料库, 用于存储数据, 以及生成batch
         self.relation2id = relation2id
         self.id2relation = {v: k for k, v in self.relation2id.items()}
         self.batch_size = batch_size  # 128
-        # ratio of valid to invalid samples per batch for training ConvKB Model
-        self.invalid_valid_ratio = int(valid_to_invalid_samples_ratio)
+        # ratio of valid to invalid samples per batch for training ConvKB Model， 是指每个batch中valid样本和invalid样本的比例
+        self.invalid_valid_ratio = int(valid_to_invalid_samples_ratio)  # 比例为4，代表每个batch中valid样本和invalid样本的比例为1:4，valid是指三元组中的头实体和尾实体在训练数据中存在，invalid是指三元组中的头实体和尾实体在训练数据中不存在
 
         if(get_2hop):  # 意思是要获取2跳邻居
             self.graph = self.get_graph()
@@ -333,15 +333,15 @@ class Corpus:  # 语料库, 用于存储数据, 以及生成batch
         count = 0
         for source in batch_sources:
             # randomly select from the list of neighbors，随机选择
-            if source in node_neighbors.keys():
-                nhop_list = node_neighbors[source][nbd_size]  #
+            if source in node_neighbors.keys():  # 有邻居 3453
+                nhop_list = node_neighbors[source][nbd_size]  #  [((5, 19), (804, 4126)), ((5, 19), (6429, 4126))]
 
                 for i, tup in enumerate(nhop_list):
                     if(args.partial_2hop and i >= 2):
                         break
 
                     count += 1
-                    batch_source_triples.append([source, nhop_list[i][0][-1], nhop_list[i][0][0],
+                    batch_source_triples.append([source, nhop_list[i][0][-1], nhop_list[i][0][0],  # [[3453, 19, 5, 804], [3453, 19, 5, 6429]]
                                                  nhop_list[i][1][0]]) # 实体；关系；关系；实体  [[2667, 5, 5, 193]]
 
         return np.array(batch_source_triples).astype(np.int32)

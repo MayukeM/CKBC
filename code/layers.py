@@ -140,7 +140,7 @@ class SpGraphAttentionLayer(nn.Module):
         self.out_features = out_features  # 输出特征维度100
         self.num_nodes = num_nodes  # 节点数8442
         self.alpha = alpha  # leakyrelu的参数，用于计算leakyrelu的梯度0.2
-        self.concat = concat#  #True，表示将输入和输出拼接起来
+        self.concat = concat#  #True，是否拼接
         self.nrela_dim = nrela_dim  # 关系维度100,即relation embedding的维度
 
         self.a = nn.Parameter(torch.zeros(  # nn.Parameter()是一个特殊的Tensor，当它被赋值为一个Module的属性时，它会被自动添加到模块的参数列表里

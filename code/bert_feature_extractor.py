@@ -158,7 +158,8 @@ class BertLayer(nn.Module):  # BERT模型，用于节点的表示，输入节点
     def __init__(self, dataset):
         super(BertLayer, self).__init__()
         self.dataset = dataset  # 数据集
-        output_dir = "../data/ConceptNet/nodes-lm-conceptnet/small"  # BERT模型的路径，这里是预训练好的BERT模型
+        # output_dir = "../data/ConceptNet/nodes-lm-conceptnet/small"  # BERT模型的路径，这里是预训练好的BERT模型
+        output_dir = "../data/ConceptNet/nodes-lm-conceptnet"  # BERT模型的路径，这里是预训练好的BERT模型
 
         self.filename = os.path.join(output_dir, self.dataset + "_bert_embeddings.pt")  # BERT模型的输出文件'../data/ConceptNet/nodes-lm-conceptnet/small/conceptnet_bert_embeddings.pt'
         print(self.filename)

@@ -121,7 +121,7 @@ def build_data(dataset, reader_cls, data_dir, sim_relations):
     # Add sim nodes
     if sim_relations:  # 这一步是致密化
         print("Adding sim edges..")
-        train_network.add_sim_edges_bert(bert_model)
+        # train_network.add_sim_edges_bert(bert_model)
 
     train_network.print_summary()
     # 输出图谱
@@ -179,13 +179,13 @@ Corpus_, entity_embeddings, relation_embeddings, Corpus_no_sim, bert_model, trai
 print('Initialised Successfully')
 
 # 存储2跳邻居的信息
-if (args.get_2hop):
+if args.get_2hop:
     file = args.data + "/2hop.pickle"
     with open(file, 'wb') as handle:
         pickle.dump(Corpus_.node_neighbors_2hop, handle,
                     protocol=pickle.HIGHEST_PROTOCOL)
 
-if (args.use_2hop):
+if args.use_2hop:
     print("Opening node_neighbors pickle object")
     file = args.data + "/2hop.pickle"  # '../data/ConceptNet/small_data' + "/2hop.pickle"
     with open(file, 'rb') as handle:  # 读取2hop.pickle文件,handle是一个文件对象
@@ -250,11 +250,11 @@ def train_gat(args):
     optimizer = torch.optim.Adam(
         model_gat.parameters(), lr=args.lr, weight_decay=args.weight_decay_gat)
 
-    scheduler = torch.optim.lr_scheduler.StepLR(
+    scheduler = torch.optim.lr_scheduler.StepLR(  # 学习率衰减
         optimizer, step_size=500, gamma=0.5, last_epoch=-1)
 
     # 评价相似度的损失
-    gat_loss_func = nn.MarginRankingLoss(margin=args.margin)
+    gat_loss_func = nn.MarginRankingLoss(margin=args.margin)  # margin=1
 
     # 当前batch的2跳邻居的切片
     current_batch_2hop_indices = torch.tensor([])
